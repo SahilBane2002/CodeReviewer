@@ -1,0 +1,59 @@
+# Compiled output
+target/
+build/
+*.class
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+
+# IDE - IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# IDE - VS Code
+.vscode/
+*.code-workspace
+
+# IDE - Eclipse
+.classpath
+.project
+.settings/
+.factorypath
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+startup.log
+app.log
+
+# Spring Boot
+spring-boot-*.log
+
+# Environment files (CRITICAL - never commit secrets)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Application secrets (in case you accidentally hardcode)
+application-secrets.properties
+application-local.properties
+
+# H2 database files (if you switch from in-memory)
+*.h2.db
+*.mv.db
+*.trace.db
+
+# Temp files
+tmp/
+temp/
