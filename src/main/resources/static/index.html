@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adversarial Code Review Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            background: #0a0e1a;
+            color: #e6e9f0;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #8892a8;
+            font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: #131827;
+            border: 1px solid #1f2940;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e6e9f0;
+        }
+
+        .examples {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .example-btn {
+            background: #1f2940;
+            color: #a8b3cf;
+            border: 1px solid #2a3654;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .example-btn:hover {
+            background: #2a3654;
+            color: #fff;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 400px;
+            background: #0a0e1a;
+            color: #e6e9f0;
+            border: 1px solid #1f2940;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4a6bd1;
+        }
+
+        .controls {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        select {
+            background: #1f2940;
+            color: #e6e9f0;
+            border: 1px solid #2a3654;
+            padding: 0.6rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        button.primary {
+            flex: 1;
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            color: #0a0e1a;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        button.primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        button.primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .findings {
+            min-height: 400px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #5a6580;
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #8892a8;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #1f2940;
+            border-top-color: #ff6b6b;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .summary {
+            background: #1f2940;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .summary-label {
+            font-size: 0.75rem;
+            color: #5a6580;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #e6e9f0;
+        }
+
+        .finding {
+            background: #1a2138;
+            border-left: 4px solid #5a6580;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .finding.critical { border-left-color: #ff6b6b; }
+        .finding.warning { border-left-color: #feca57; }
+        .finding.suggestion { border-left-color: #54a0ff; }
+
+        .finding-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .finding-category {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #a8b3cf;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .severity {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .severity.critical { background: #ff6b6b; color: #fff; }
+        .severity.warning { background: #feca57; color: #0a0e1a; }
+        .severity.suggestion { background: #54a0ff; color: #fff; }
+
+        .finding-description {
+            font-size: 0.95rem;
+            color: #e6e9f0;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .finding-section {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #a8b3cf;
+            line-height: 1.5;
+        }
+
+        .finding-section-label {
+            color: #5a6580;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+
+        .lines {
+            display: inline-block;
+            background: #0a0e1a;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #feca57;
+        }
+
+        .error-banner {
+            background: #ff6b6b22;
+            border: 1px solid #ff6b6b;
+            color: #ff6b6b;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Adversarial Code Review Bot</h1>
+            <p class="subtitle">
+                A paranoid senior engineer in AI form. Paste your code — it hunts for race conditions, 
+                null safety issues, security holes, and other ways your code will fail in production.
+            </p>
+        </header>
+
+        <div class="main-grid">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Your Code</span>
+                </div>
+
+                <div class="examples">
+                    <button class="example-btn" onclick="loadExample('cache')">Cache Race Condition</button>
+                    <button class="example-btn" onclick="loadExample('sql')">SQL Injection</button>
+                    <button class="example-btn" onclick="loadExample('resource')">Resource Leak</button>
+                </div>
+
+                <textarea id="codeInput" placeholder="// Paste your code here..."></textarea>
+
+                <div class="controls">
+                    <select id="language">
+                        <option value="java">Java</option>
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="typescript">TypeScript</option>
+                        <option value="go">Go</option>
+                        <option value="rust">Rust</option>
+                        <option value="cpp">C++</option>
+                    </select>
+                    <button class="primary" id="reviewBtn" onclick="runReview()">
+                        Review Code
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Findings</span>
+                </div>
+                <div class="findings" id="findings">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <div>Paste code and hit Review</div>
+                        <div style="font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.7;">
+                            Or try one of the examples above
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const EXAMPLES = {
+            cache: `public class UserService {
+    private Map<String, User> cache = new HashMap<>();
+    
+    public User getUser(String id) {
+        if (cache.containsKey(id)) {
+            return cache.get(id);
+        }
+        User user = database.findById(id);
+        cache.put(id, user);
+        return user;
+    }
+}`,
+            sql: `public List<User> searchUsers(String searchTerm) {
+    String sql = "SELECT * FROM users WHERE name LIKE '%" + searchTerm + "%'";
+    return jdbcTemplate.query(sql, new UserRowMapper());
+}`,
+            resource: `public String readConfig(String path) {
+    FileInputStream fis = new FileInputStream(path);
+    byte[] bytes = fis.readAllBytes();
+    return new String(bytes);
+}`
+        };
+
+        function loadExample(name) {
+            document.getElementById('codeInput').value = EXAMPLES[name];
+        }
+
+        async function runReview() {
+            const code = document.getElementById('codeInput').value.trim();
+            const language = document.getElementById('language').value;
+            const btn = document.getElementById('reviewBtn');
+            const findingsEl = document.getElementById('findings');
+
+            if (!code) {
+                findingsEl.innerHTML = '<div class="error-banner">Please enter some code to review.</div>';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+            findingsEl.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>AI is reviewing your code...</div>
+                    <div style="font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.7;">
+                        This usually takes 3-10 seconds
+                    </div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/reviews', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: code,
+                        language: language,
+                        filename: 'playground.' + language
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                renderFindings(data);
+            } catch (err) {
+                findingsEl.innerHTML = `<div class="error-banner">Error: ${err.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Review Code';
+            }
+        }
+
+        function renderFindings(data) {
+            const findingsEl = document.getElementById('findings');
+            const findings = data.findings || [];
+
+            const counts = {
+                critical: findings.filter(f => f.severity === 'CRITICAL').length,
+                warning: findings.filter(f => f.severity === 'WARNING').length,
+                suggestion: findings.filter(f => f.severity === 'SUGGESTION').length,
+            };
+
+            let html = `
+                <div class="summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Total</span>
+                        <span class="summary-value">${findings.length}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Critical</span>
+                        <span class="summary-value" style="color: #ff6b6b">${counts.critical}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Warning</span>
+                        <span class="summary-value" style="color: #feca57">${counts.warning}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Suggestion</span>
+                        <span class="summary-value" style="color: #54a0ff">${counts.suggestion}</span>
+                    </div>
+                </div>
+            `;
+
+            if (findings.length === 0) {
+                html += `
+                    <div style="text-align: center; padding: 2rem; color: #5a6580;">
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">✓</div>
+                        <div>No issues found.</div>
+                    </div>
+                `;
+            } else {
+                findings.forEach(f => {
+                    const sev = (f.severity || 'WARNING').toLowerCase();
+                    html += `
+                        <div class="finding ${sev}">
+                            <div class="finding-header">
+                                <span class="finding-category">${f.category || 'ISSUE'}</span>
+                                <span class="severity ${sev}">${f.severity || 'WARNING'}</span>
+                            </div>
+                            <div class="finding-description">${escapeHtml(f.description || '')}</div>
+                            ${f.failureScenario && f.failureScenario !== 'N/A' ? `
+                                <div class="finding-section">
+                                    <span class="finding-section-label">Failure Scenario</span>
+                                    ${escapeHtml(f.failureScenario)}
+                                </div>
+                            ` : ''}
+                            ${f.suggestion ? `
+                                <div class="finding-section">
+                                    <span class="finding-section-label">Suggested Fix</span>
+                                    ${escapeHtml(f.suggestion)}
+                                </div>
+                            ` : ''}
+                            ${f.affectedLines && f.affectedLines !== 'N/A' ? `
+                                <div class="finding-section">
+                                    <span class="finding-section-label">Lines</span>
+                                    <span class="lines">${escapeHtml(f.affectedLines)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+            }
+
+            findingsEl.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Allow Cmd+Enter / Ctrl+Enter to trigger review
+        document.getElementById('codeInput').addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                runReview();
+            }
+        });
+    </script>
+</body>
+</html>
