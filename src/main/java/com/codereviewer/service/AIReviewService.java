@@ -57,17 +57,18 @@ public class AIReviewService {
             """;
 
     public List<Finding> analyzeCode(ReviewRequest request) {
-        log.info("Starting AI review for file: {}", request.getFilename());
+    log.info("Starting AI review for file: {}", request.getFilename());
 
-        ChatClient chatClient = chatClientBuilder.build();
+    ChatClient chatClient = chatClientBuilder.build();
 
-        String userMessage = String.format(
-                "Review this %s code from file '%s':\n\n```\n%s\n```",
-                request.getLanguage() != null ? request.getLanguage() : "unknown",
-                request.getFilename() != null ? request.getFilename() : "unknown",
-                request.getCode()
-        );
+    String userMessage = String.format(
+            "Review this %s code from file '%s':\n\n```\n%s\n```",
+            request.getLanguage() != null ? request.getLanguage() : "unknown",
+            request.getFilename() != null ? request.getFilename() : "unknown",
+            request.getCode()
+    );
 
+    try {
         String response = chatClient.prompt()
                 .system(SYSTEM_PROMPT)
                 .user(userMessage)
@@ -78,7 +79,16 @@ public class AIReviewService {
         log.debug("Raw AI response: {}", response);
 
         return parseFindings(response);
+    } catch (org.springframework.ai.retry.NonTransientAiException e) {
+        log.error("AI service rejected the request: {}", e.getMessage());
+        throw new com.codereviewer.exception.AIServiceException(
+                "AI service rejected the request. Check API key or rate limits.", e);
+    } catch (Exception e) {
+        log.error("AI service call failed: {}", e.getMessage(), e);
+        throw new com.codereviewer.exception.AIServiceException(
+                "Failed to get AI review. The service may be unavailable.", e);
     }
+}
 
     private List<Finding> parseFindings(String response) {
         try {

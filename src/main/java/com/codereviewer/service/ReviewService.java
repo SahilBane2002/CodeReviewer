@@ -55,7 +55,7 @@ public class ReviewService {
                     .build();
             return reviewRepository.save(record);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize findings", e);
+            throw new com.codereviewer.exception.ReviewProcessingException("Failed to serialize findings", e);
         }
     }
 
@@ -72,7 +72,7 @@ public class ReviewService {
                     .findings(findings)
                     .build();
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to deserialize findings", e);
+            throw new com.codereviewer.exception.ReviewProcessingException("Failed to deserialize findings", e);
         }
     }
 }
